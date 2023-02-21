@@ -2,9 +2,11 @@ package com.sequenceiq.cloudbreak.cmtemplate.configproviders.impala;
 
 import static com.sequenceiq.cloudbreak.template.TemplatePreparationObject.Builder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -23,42 +25,51 @@ import com.sequenceiq.common.api.filesystem.S3FileSystem;
 import com.sequenceiq.common.api.type.InstanceGroupType;
 
 @ExtendWith(MockitoExtension.class)
-class ImpalaCloudStorageServiceConfigProviderTest {
+class ImpalaIcebergConfigProviderTest {
 
     private final ImpalaIcebergConfigProvider underTest = new ImpalaIcebergConfigProvider();
 
     @Test
-    public void testImpalaCloudStorageServiceConfigs() {
+    public void testImpalaIcebergConfigProvider() {
         CmTemplateProcessor templateProcessor = new CmTemplateProcessor(getBlueprintText("input/clouderamanager-host-with-uppercase.bp"));
         TemplatePreparationObject templatePreparationObject = getTemplatePreparationObject(true);
 
-        List<ApiClusterTemplateConfig> serviceConfigs = underTest.getServiceConfigs(templateProcessor, templatePreparationObject);
+        Map<String, List<ApiClusterTemplateConfig>> roleConfigs = underTest.getRoleConfigs(templateProcessor, templatePreparationObject);
 
-        assertEquals(1, serviceConfigs.size());
-        assertEquals("impala_cmd_args_safety_valve", serviceConfigs.get(0).getName());
-        assertEquals("--startup_filesystem_check_directories=" +
-                "s3a://bucket/warehouse/tablespace/managed/hive," +
-                "s3a://bucket/warehouse/tablespace/external/hive", serviceConfigs.get(0).getValue());
+        String expectedCatalogd = "<property><name>iceberg.io-impl</name><value>org.apache.iceberg.hadoop.HadoopFileIO</value></property>"
+                + "<property><name>iceberg.io.manifest.cache-enabled</name><value>true</value></property>"
+                + "<property><name>iceberg.io.manifest.cache.expiration-interval-ms</name><value>604800000</value></property>"
+                + "<property><name>iceberg.io.manifest.cache.max-content-length</name><value>8388608</value></property>"
+                + "<property><name>iceberg.io.manifest.cache.max-total-bytes</name><value>104857600</value></property>";
+        List<ApiClusterTemplateConfig> catalogd = roleConfigs.get("impala-CATALOGSERVER-BASE");
+
+        assertEquals(1, catalogd.size());
+        assertEquals("impalad_core_site_safety_valve", catalogd.get(0).getName());
+        assertEquals(expectedCatalogd, catalogd.get(0).getValue());
+
+        String expectedCoordinator = "<property><name>iceberg.io-impl</name><value>org.apache.iceberg.hadoop.HadoopFileIO</value></property>"
+                + "<property><name>iceberg.io.manifest.cache-enabled</name><value>true</value></property>"
+                + "<property><name>iceberg.io.manifest.cache.expiration-interval-ms</name><value>3600000</value></property>"
+                + "<property><name>iceberg.io.manifest.cache.max-content-length</name><value>8388608</value></property>"
+                + "<property><name>iceberg.io.manifest.cache.max-total-bytes</name><value>104857600</value></property>";
+        List<ApiClusterTemplateConfig> coordinator = roleConfigs.get("impala-IMPALAD-COORDINATOR");
+
+        assertEquals(1, coordinator.size());
+        assertEquals("impalad_core_site_safety_valve", coordinator.get(0).getName());
+        assertEquals(expectedCoordinator, coordinator.get(0).getValue());
+
+
+        List<ApiClusterTemplateConfig> executor = roleConfigs.get("impala-IMPALAD-EXECUTOR");
+
+        assertEquals(0, executor.size());
     }
 
     @Test
-    public void testImpalaCloudStorageServiceConfigsWithoutStorageConfigured() {
-        CmTemplateProcessor templateProcessor = new CmTemplateProcessor(getBlueprintText("input/clouderamanager-host-with-uppercase.bp"));
-        TemplatePreparationObject templatePreparationObject = getTemplatePreparationObject(false);
-
-        List<ApiClusterTemplateConfig> serviceConfigs = underTest.getServiceConfigs(templateProcessor, templatePreparationObject);
-
-        assertEquals(0, serviceConfigs.size());
-    }
-
-    @Test
-    public void testImpalaCloudStorageServiceConfigsWithLowerCdhVersion() {
+    public void testImpalaIcebergConfigProviderWithLowerCdhVersion() {
         CmTemplateProcessor templateProcessor = new CmTemplateProcessor(getBlueprintText("input/cdp-data-mart.bp"));
         TemplatePreparationObject templatePreparationObject = getTemplatePreparationObject(true);
 
-        List<ApiClusterTemplateConfig> serviceConfigs = underTest.getServiceConfigs(templateProcessor, templatePreparationObject);
-
-        assertEquals(0, serviceConfigs.size());
+        assertFalse(underTest.isConfigurationNeeded(templateProcessor, templatePreparationObject));
     }
 
     private TemplatePreparationObject getTemplatePreparationObject(boolean includeLocations) {

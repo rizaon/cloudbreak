@@ -62,6 +62,7 @@ import com.sequenceiq.cloudbreak.cloud.model.InstanceCount;
 import com.sequenceiq.cloudbreak.cloud.model.ResizeRecommendation;
 import com.sequenceiq.cloudbreak.cluster.model.ClusterHostAttributes;
 import com.sequenceiq.cloudbreak.cmtemplate.configproviders.hue.HueConfigProvider;
+import com.sequenceiq.cloudbreak.cmtemplate.configproviders.impala.ImpalaRoles;
 import com.sequenceiq.cloudbreak.cmtemplate.configproviders.knox.KnoxRoles;
 import com.sequenceiq.cloudbreak.cmtemplate.configproviders.yarn.YarnConstants;
 import com.sequenceiq.cloudbreak.cmtemplate.configproviders.yarn.YarnRoles;
@@ -788,6 +789,10 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
         return getServiceByType(serviceType).filter(acts -> isAnyRoleTypePresent(acts, roleTypes)).isPresent();
     }
 
+    public boolean isImpalaCoordinatorPresentInService() {
+        return !getImpalaCoordinators().isEmpty();
+    }
+
     private boolean isAnyRoleTypePresent(ApiClusterTemplateService apiClusterTemplateService, List<String> roleTypes) {
         return apiClusterTemplateService.getRoleConfigGroups().stream()
                 .anyMatch(rcg -> roleTypes.stream().anyMatch(roleType -> roleType.equalsIgnoreCase(rcg.getRoleType())));
@@ -901,8 +906,8 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
     }
 
     private Predicate<ApiClusterTemplateRoleConfigGroup> filterNonCoordinatorImpalaRole() {
-        return roleConfigGroup -> "IMPALAD".equals(roleConfigGroup.getRoleType()) && roleConfigGroup.getConfigs() != null &&
-                roleConfigGroup.getConfigs().stream().anyMatch(config -> "COORDINATOR_ONLY".equals(config.getValue()));
+        return roleConfigGroup -> ImpalaRoles.ROLE_IMPALAD.equals(roleConfigGroup.getRoleType()) && roleConfigGroup.getConfigs() != null &&
+                roleConfigGroup.getConfigs().stream().anyMatch(config -> ImpalaRoles.SPECIALIZATION_COORDINATOR_ONLY.equals(config.getValue()));
     }
 
     public void removeDanglingVariableReferences() {

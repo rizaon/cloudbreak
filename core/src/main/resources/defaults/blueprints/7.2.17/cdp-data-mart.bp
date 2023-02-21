@@ -37,7 +37,7 @@
               "value" : "COORDINATOR_ONLY"
             }, {
               "name" : "impalad_core_site_safety_valve",
-              "value" : "<property><name>fs.s3a.experimental.input.fadvise</name><value>RANDOM</value></property><property><name>fs.s3a.fast.upload</name><value>true</value></property>"
+              "value" : "<property><name>fs.s3a.experimental.input.fadvise</name><value>RANDOM</value></property><property><name>fs.s3a.fast.upload</name><value>true</value></property><property><name>iceberg.io-impl</name><value>org.apache.iceberg.hadoop.HadoopFileIO</value></property><property><name>iceberg.io.manifest.cache-enabled</name><value>true</value></property><property><name>iceberg.io.manifest.cache.expiration-interval-ms</name><value>3600000</value></property><property><name>iceberg.io.manifest.cache.max-content-length</name><value>8388608</value></property><property><name>iceberg.io.manifest.cache.max-total-bytes</name><value>104857600</value></property>"
             }, {
               "name" : "impala_graceful_shutdown_deadline",
               "value" : "60"
@@ -67,6 +67,10 @@
           {
             "refName": "impala-CATALOGSERVER-BASE",
             "roleType": "CATALOGSERVER",
+            "configs": [ {
+              "name": "impalad_core_site_safety_valve",
+              "value": "<property><name>fs.s3a.experimental.input.fadvise</name><value>NORMAL</value><property><name>fs.s3a.experimental.fadvise</name><value>NORMAL</value></property></property><property><name>fs.s3a.fast.upload</name><value>true</value></property><property><name>iceberg.io-impl</name><value>org.apache.iceberg.hadoop.HadoopFileIO</value></property><property><name>iceberg.io.manifest.cache-enabled</name><value>true</value></property><property><name>iceberg.io.manifest.cache.expiration-interval-ms</name><value>604800000</value></property><property><name>iceberg.io.manifest.cache.max-content-length</name><value>8388608</value></property><property><name>iceberg.io.manifest.cache.max-total-bytes</name><value>104857600</value></property>"
+            } ],
             "base": true
           }
         ]
